@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>正计时 · 计次历史 | 手机适配</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: #f5f7fb;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', Helvetica, Arial, sans-serif;
+            padding: 12px;
+            color: #1e2a3e;
+        }
+
+        .app-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* 页面切换标签 - 移动端友好 */
+        .page-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .tab-btn {
+            background: #ffffffcc;
+            backdrop-filter: blur(8px);
+            border: 1px solid #e2e8f0;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 40px;
+            cursor: pointer;
+            color: #4a5b6e;
+            transition: all 0.2s;
+            flex: 0 1 auto;
+            text-align: center;
+        }
+        .tab-btn.active {
+            background: #d9e2ec;
+            color: #2c3e50;
+            border-color: #cbd5e1;
+        }
+        .tab-btn:active { transform: scale(0.96); }
+
+        /* 卡片样式 */
+        .page-card {
+            background: #ffffff;
+            border-radius: 28px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+            padding: 20px 16px;
+            transition: all 0.2s;
+            border: 1px solid #eef2f5;
+        }
+        .hidden-page { display: none; }
+
+        /* 计时器页面 */
+        .timer-page {
+            position: relative;
+        }
+        .realtime-clock {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: #eef2f5;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #4a5b6e;
+            border: 1px solid #e2e8f0;
+            z-index: 10;
+        }
+        .timer-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 16px;
+            margin-right: 100px;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .timer-title small {
+            font-size: 0.7rem;
+            background: #eef2f5;
+            padding: 4px 10px;
+            border-radius: 40px;
+            color: #5a6e7c;
+            font-weight: 500;
+        }
+        .time-display {
+            background: #f8fafc;
+            border-radius: 32px;
+            padding: 20px 12px;
+            margin: 12px 0 20px;
+            text-align: center;
+            border: 1px solid #eef2f5;
+        }
+        .timer {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: clamp(2.2rem, 12vw, 4rem);
+            letter-spacing: 2px;
+            color: #2c3e50;
+            word-break: break-word;
+        }
+        .unit-label {
+            color: #8ba0b0;
+            font-size: 0.7rem;
+            margin-top: 6px;
+        }
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 20px 0 16px;
+        }
+        .btn {
+            border: none;
+            padding: 12px 20px;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 60px;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
+            background: #f1f5f9;
+            color: #2c3e50;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            flex: 0 1 auto;
+            min-width: 100px;
+            justify-content: center;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn-primary {
+            background: #e2e8f0;
+            color: #2c3e50;
+        }
+        .btn-primary:hover { background: #cbd5e1; }
+        .btn-lap {
+            background: #e0f2fe;
+            color: #1e4a6b;
+        }
+        .btn-lap:hover { background: #bae6fd; }
+        .btn-reset {
+            background: #fee2e2;
+            color: #8b3a3a;
+        }
+        .btn-reset:hover { background: #fecaca; }
+
+        .lap-section {
+            margin-top: 16px;
+            background: #fafcfd;
+            border-radius: 24px;
+            padding: 12px;
+            border: 1px solid #eef2f5;
+        }
+        .lap-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e2e8f0;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .clear-laps {
+            background: none;
+            border: none;
+            font-size: 0.7rem;
+            color: #8ba0b0;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 30px;
+        }
+        .clear-laps:active { background: #eef2f5; }
+        .lap-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .lap-item {
+            display: flex;
+            justify-content: space-between;
+            background: white;
+            padding: 8px 12px;
+            margin: 6px 0;
+            border-radius: 40px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            border: 1px solid #eef2f5;
+        }
+        .empty-lap {
+            text-align: center;
+            color: #8ba0b0;
+            padding: 16px;
+            font-style: italic;
+        }
+
+        /* 历史记录页面 - 移动端横向滚动 */
+        .history-page {
+            overflow-x: auto;
+            padding: 0;
+        }
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 0 4px;
+        }
+        .history-header h2 {
+            font-size: 1.25rem;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        .batch-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .batch-actions button {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            padding: 6px 12px;
+            border-radius: 40px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.75rem;
+            color: #2c3e50;
+        }
+        .batch-actions button:active { background: #e2e8f0; }
+        .delete-selected-btn {
+            background: #fee2e2 !important;
+            color: #8b3a3a !important;
+            border-color: #fecaca !important;
+        }
+        .history-table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 24px;
+        }
+        .history-table {
+            min-width: 700px;
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 24px;
+            border: 1px solid #eef2f5;
+            font-size: 0.8rem;
+        }
+        .history-table th, .history-table td {
+            padding: 12px 8px;
+            text-align: center;
+            border-bottom: 1px solid #eef2f5;
+            vertical-align: middle;
+        }
+        .history-table th {
+            background: #f9fbfd;
+            font-weight: 600;
+            color: #4a5b6e;
+            font-size: 0.75rem;
+        }
+        .date-merged-cell {
+            background-color: #fefce8;
+            font-weight: 500;
+        }
+        .checkbox-col {
+            width: 40px;
+        }
+        .remark-col {
+            min-width: 140px;
+        }
+        .remark-input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            background: #ffffff;
+            font-family: inherit;
+            color: #2c3e50;
+        }
+        .remark-input:focus {
+            outline: none;
+            border-color: #cbd5e1;
+            background: #fafcfd;
+        }
+        .empty-history {
+            text-align: center;
+            padding: 32px;
+            color: #8ba0b0;
+        }
+        .footer-note {
+            margin-top: 16px;
+            font-size: 0.65rem;
+            text-align: center;
+            color: #8ba0b0;
+            border-top: 1px solid #eef2f5;
+            padding-top: 12px;
+        }
+
+        /* 手机端额外优化 */
+        @media (max-width: 500px) {
+            body {
+                padding: 8px;
+            }
+            .page-card {
+                padding: 16px 12px;
+                border-radius: 24px;
+            }
+            .btn {
+                padding: 10px 16px;
+                font-size: 0.9rem;
+                min-width: 80px;
+            }
+            .timer {
+                font-size: clamp(1.8rem, 10vw, 3.2rem);
+            }
+            .realtime-clock {
+                font-size: 0.65rem;
+                padding: 3px 10px;
+                top: 12px;
+                right: 12px;
+            }
+            .timer-title {
+                font-size: 1.2rem;
+                margin-right: 80px;
+            }
+            .lap-item {
+                font-size: 0.7rem;
+                padding: 6px 10px;
+            }
+            .batch-actions button {
+                padding: 5px 10px;
+                font-size: 0.7rem;
+            }
+            .history-table th, .history-table td {
+                padding: 8px 4px;
+                font-size: 0.7rem;
+            }
+            .remark-input {
+                font-size: 0.65rem;
+                padding: 4px 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="page-tabs">
+        <button class="tab-btn active" data-page="timer">⏱️ 计时器</button>
+        <button class="tab-btn" data-page="history">📜 历史记录</button>
+    </div>
+
+    <!-- 计时器页面 -->
+    <div id="timerPage" class="page-card timer-page">
+        <div class="realtime-clock" id="realtimeClock">--:--:--</div>
+        <div class="timer-title">
+            ⏱️ 正计时器 <small>自动计次</small>
+        </div>
+        <div class="time-display">
+            <div class="timer" id="timerDisplay">00:00:00.00</div>
+            <div class="unit-label">小时 : 分钟 : 秒 . 百分秒</div>
+        </div>
+        <div class="button-group">
+            <button class="btn btn-primary" id="mainControlBtn">▶ 开始</button>
+            <button class="btn btn-lap" id="lapBtn">⏱️ 计次</button>
+            <button class="btn btn-reset" id="resetBtn">🔄 重置</button>
+        </div>
+        <div class="lap-section">
+            <div class="lap-header">
+                <h4>📋 当前计次点</h4>
+                <button class="clear-laps" id="clearLapsBtn">清空列表</button>
+            </div>
+            <div class="lap-list" id="lapListContainer">
+                <div class="empty-lap">暂无计次点，点击「计次」记录</div>
+            </div>
+        </div>
+        <div class="footer-note">
+            ✨ 每次「计次」和「重置」自动保存到历史<br>
+            📌 当天累计时长基于真实时间累加（不受重置影响）
+        </div>
+    </div>
+
+    <!-- 历史记录页面 -->
+    <div id="historyPage" class="page-card history-page hidden-page">
+        <div class="history-header">
+            <h2>📆 计次明细历史</h2>
+            <div class="batch-actions">
+                <button id="selectAllBtn">☑️ 全选</button>
+                <button id="deselectAllBtn">⬚ 取消</button>
+                <button id="deleteSelectedBtn" class="delete-selected-btn">🗑️ 删除</button>
+            </div>
+        </div>
+        <div class="history-table-wrapper">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th class="checkbox-col"><input type="checkbox" id="headerCheckbox"></th>
+                        <th>日期</th>
+                        <th>计次</th>
+                        <th>时刻</th>
+                        <th>间隔时长</th>
+                        <th>当天累计</th>
+                        <th class="remark-col">备注</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                    <tr><td colspan="7" class="empty-history">暂无历史记录，点击计次或重置后自动显示</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="footer-note">
+            ✅ 勾选记录后可批量删除 | ✏️ 点击备注框可添加文字，自动保存
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // DOM 元素
+        const timerDisplay = document.getElementById('timerDisplay');
+        const mainControlBtn = document.getElementById('mainControlBtn');
+        const lapBtn = document.getElementById('lapBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const clearLapsBtn = document.getElementById('clearLapsBtn');
+        const lapListContainer = document.getElementById('lapListContainer');
+        const realtimeClockSpan = document.getElementById('realtimeClock');
+        const historyTableBody = document.getElementById('historyTableBody');
+        const headerCheckbox = document.getElementById('headerCheckbox');
+        const selectAllBtn = document.getElementById('selectAllBtn');
+        const deselectAllBtn = document.getElementById('deselectAllBtn');
+        const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+
+        // 页面切换
+        const timerPage = document.getElementById('timerPage');
+        const historyPage = document.getElementById('historyPage');
+        const tabBtns = document.querySelectorAll('.tab-btn');
+
+        // 计时核心
+        let startTime = null;
+        let accumulatedTime = 0;
+        let running = false;
+        let timerInterval = null;
+        let currentSessionLaps = [];
+
+        // 全局历史记录
+        let globalHistoryPoints = [];
+        const STORAGE_KEY = 'auto_lap_mobile_v7';
+
+        // 辅助函数
+        function formatTimeWithCenti(ms) {
+            if (ms < 0) ms = 0;
+            const totalSec = ms / 1000;
+            const h = Math.floor(totalSec / 3600);
+            const m = Math.floor((totalSec % 3600) / 60);
+            const s = Math.floor(totalSec % 60);
+            const cs = Math.floor((ms % 1000) / 10);
+            return `${h < 10 ? '0'+h : h}:${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}.${cs < 10 ? '0'+cs : cs}`;
+        }
+
+        function formatHM(ms) {
+            if (ms < 0) ms = 0;
+            const totalSec = Math.floor(ms / 1000);
+            const h = Math.floor(totalSec / 3600);
+            const m = Math.floor((totalSec % 3600) / 60);
+            const s = totalSec % 60;
+            return `${h < 10 ? '0'+h : h}:${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+        }
+
+        function formatClock(date) {
+            if (!date) return '--:--:--';
+            return `${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}:${date.getSeconds().toString().padStart(2,'0')}`;
+        }
+
+        function getCurrentElapsedMs() {
+            if (running && startTime !== null) return accumulatedTime + (Date.now() - startTime);
+            return accumulatedTime;
+        }
+
+        function updateDisplay() {
+            timerDisplay.textContent = formatTimeWithCenti(getCurrentElapsedMs());
+        }
+
+        function stopLoop() {
+            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+        }
+        function startLoop() {
+            if (timerInterval) return;
+            timerInterval = setInterval(() => updateDisplay(), 30);
+        }
+
+        function refreshMainButton() {
+            if (running) mainControlBtn.innerHTML = '⏸ 暂停';
+            else mainControlBtn.innerHTML = accumulatedTime > 0 ? '▶ 继续' : '▶ 开始';
+        }
+
+        function startTimer() {
+            if (running) return;
+            startTime = Date.now();
+            running = true;
+            startLoop();
+            updateDisplay();
+            refreshMainButton();
+        }
+
+        function pauseTimer() {
+            if (!running) return;
+            if (startTime !== null) accumulatedTime += (Date.now() - startTime);
+            stopLoop();
+            running = false;
+            startTime = null;
+            updateDisplay();
+            refreshMainButton();
+        }
+
+        // 历史存储
+        function saveHistoryToLocal() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(globalHistoryPoints));
+        }
+
+        function loadHistoryFromLocal() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                try { globalHistoryPoints = JSON.parse(raw); } catch(e) { globalHistoryPoints = []; }
+                for (let p of globalHistoryPoints) if (p.remark === undefined) p.remark = "";
+            } else {
+                globalHistoryPoints = [];
+            }
+            renderHistoryTable();
+        }
+
+        function addHistoryPoint(absoluteTime) {
+            const dateObj = absoluteTime;
+            const dateKey = `${dateObj.getFullYear()}-${dateObj.getMonth()+1}-${dateObj.getDate()}`;
+            const dateDisplay = `${dateObj.getFullYear()}/${dateObj.getMonth()+1}/${dateObj.getDate()}`;
+            const timeStr = formatClock(dateObj);
+            let intervalMs = 0;
+            if (globalHistoryPoints.length > 0) {
+                const lastTime = new Date(globalHistoryPoints[globalHistoryPoints.length - 1].absoluteTimeISO);
+                intervalMs = absoluteTime - lastTime;
+                if (intervalMs < 0) intervalMs = 0;
+            }
+            const newPoint = {
+                id: Date.now() + Math.random() * 10000,
+                absoluteTimeISO: absoluteTime.toISOString(),
+                intervalMs: intervalMs,
+                dateKey: dateKey,
+                dateDisplay: dateDisplay,
+                timeStr: timeStr,
+                remark: ""
+            };
+            globalHistoryPoints.push(newPoint);
+            saveHistoryToLocal();
+            renderHistoryTable();
+        }
+
+        function updateRemark(id, newRemark) {
+            const point = globalHistoryPoints.find(p => p.id === id);
+            if (point) {
+                point.remark = newRemark;
+                saveHistoryToLocal();
+            }
+        }
+
+        function deleteSelectedRecords(selectedIds) {
+            if (selectedIds.size === 0) return;
+            globalHistoryPoints = globalHistoryPoints.filter(p => !selectedIds.has(p.id));
+            saveHistoryToLocal();
+            renderHistoryTable();
+        }
+
+        function renderHistoryTable() {
+            if (!historyTableBody) return;
+            if (globalHistoryPoints.length === 0) {
+                historyTableBody.innerHTML = '<tr><td colspan="7" class="empty-history">暂无历史记录，点击计次或重置后自动显示</td></tr>';
+                if (headerCheckbox) headerCheckbox.checked = false;
+                return;
+            }
+            const sorted = [...globalHistoryPoints].sort((a,b) => new Date(a.absoluteTimeISO) - new Date(b.absoluteTimeISO));
+            const groupedByDate = new Map();
+            for (let point of sorted) {
+                if (!groupedByDate.has(point.dateKey)) groupedByDate.set(point.dateKey, []);
+                groupedByDate.get(point.dateKey).push(point);
+            }
+            for (let [dateKey, points] of groupedByDate.entries()) {
+                if (points.length === 0) continue;
+                const firstTime = new Date(points[0].absoluteTimeISO);
+                for (let p of points) {
+                    const curTime = new Date(p.absoluteTimeISO);
+                    p.dailyCumulativeMs = curTime - firstTime;
+                }
+            }
+            let tbodyHtml = '';
+            for (let [dateKey, points] of groupedByDate.entries()) {
+                const rowCount = points.length;
+                for (let i = 0; i < points.length; i++) {
+                    const p = points[i];
+                    p.dayIndex = i + 1;
+                    const intervalStr = (p.intervalMs === 0 && i === 0) ? '00:00:00' : formatHM(p.intervalMs);
+                    const dailyTotalStr = formatHM(p.dailyCumulativeMs);
+                    const checkboxHtml = `<input type="checkbox" class="row-checkbox" data-id="${p.id}">`;
+                    const remarkInput = `<input type="text" class="remark-input" data-id="${p.id}" value="${escapeHtml(p.remark)}" placeholder="备注...">`;
+                    if (i === 0) {
+                        tbodyHtml += `<tr>
+                            <td>${checkboxHtml}</td>
+                            <td class="date-merged-cell" rowspan="${rowCount}">${p.dateDisplay}</td>
+                            <td>${p.dayIndex}</td>
+                            <td>${p.timeStr}</td>
+                            <td>${intervalStr}</td>
+                            <td>${dailyTotalStr}</td>
+                            <td>${remarkInput}</td>
+                        </tr>`;
+                    } else {
+                        tbodyHtml += `<tr>
+                            <td>${checkboxHtml}</td>
+                            <td>${p.dayIndex}</td>
+                            <td>${p.timeStr}</td>
+                            <td>${intervalStr}</td>
+                            <td>${dailyTotalStr}</td>
+                            <td>${remarkInput}</td>
+                        </tr>`;
+                    }
+                }
+            }
+            historyTableBody.innerHTML = tbodyHtml;
+
+            // 绑定备注事件
+            document.querySelectorAll('.remark-input').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const id = parseFloat(input.getAttribute('data-id'));
+                    if (!isNaN(id)) updateRemark(id, input.value);
+                });
+            });
+            // 绑定复选框事件
+            document.querySelectorAll('.row-checkbox').forEach(cb => {
+                cb.addEventListener('change', updateHeaderCheckboxState);
+            });
+            updateHeaderCheckboxState();
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        function updateHeaderCheckboxState() {
+            if (!headerCheckbox) return;
+            const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+            if (rowCheckboxes.length === 0) {
+                headerCheckbox.checked = false;
+                headerCheckbox.indeterminate = false;
+                return;
+            }
+            const checkedCount = Array.from(rowCheckboxes).filter(cb => cb.checked).length;
+            headerCheckbox.checked = checkedCount === rowCheckboxes.length;
+            headerCheckbox.indeterminate = checkedCount > 0 && checkedCount < rowCheckboxes.length;
+        }
+
+        function selectAllRows() {
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = true);
+            updateHeaderCheckboxState();
+        }
+
+        function deselectAllRows() {
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+            updateHeaderCheckboxState();
+        }
+
+        function deleteSelectedRows() {
+            const selectedIds = new Set();
+            document.querySelectorAll('.row-checkbox').forEach(cb => {
+                if (cb.checked) {
+                    const id = parseFloat(cb.getAttribute('data-id'));
+                    if (!isNaN(id)) selectedIds.add(id);
+                }
+            });
+            if (selectedIds.size === 0) {
+                alert("请先勾选要删除的记录");
+                return;
+            }
+            if (confirm(`确定删除 ${selectedIds.size} 条历史记录吗？`)) {
+                deleteSelectedRecords(selectedIds);
+            }
+        }
+
+        function onHeaderCheckboxChange(e) {
+            const isChecked = e.target.checked;
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = isChecked);
+            updateHeaderCheckboxState();
+        }
+
+        // 计次和重置
+        function onLap() {
+            const currentTotalMs = getCurrentElapsedMs();
+            if (currentTotalMs <= 0) {
+                alert("请先开始计时再添加计次点");
+                return;
+            }
+            const now = new Date();
+            addHistoryPoint(now);
+            currentSessionLaps.push({
+                absoluteTime: now,
+                timeStr: formatClock(now),
+                formattedTime: formatTimeWithCenti(currentTotalMs)
+            });
+            renderCurrentSessionLaps();
+        }
+
+        function onReset() {
+            const currentTotalMs = getCurrentElapsedMs();
+            if (currentTotalMs > 0) {
+                const now = new Date();
+                addHistoryPoint(now);
+            }
+            stopLoop();
+            running = false;
+            startTime = null;
+            accumulatedTime = 0;
+            updateDisplay();
+            refreshMainButton();
+            currentSessionLaps = [];
+            renderCurrentSessionLaps();
+        }
+
+        function clearCurrentLapsOnly() {
+            currentSessionLaps = [];
+            renderCurrentSessionLaps();
+        }
+
+        function renderCurrentSessionLaps() {
+            if (!lapListContainer) return;
+            if (currentSessionLaps.length === 0) {
+                lapListContainer.innerHTML = '<div class="empty-lap">✨ 暂无计次点，点击「计次」记录</div>';
+                return;
+            }
+            const html = currentSessionLaps.map((lap, idx) => `
+                <div class="lap-item">
+                    <span>计次 ${idx+1}</span>
+                    <span>${lap.timeStr} (${lap.formattedTime})</span>
+                </div>
+            `).join('');
+            lapListContainer.innerHTML = html;
+        }
+
+        function onMainControl() {
+            if (running) pauseTimer();
+            else startTimer();
+        }
+
+        // 实时时钟
+        let clockInterval = null;
+        function updateClock() {
+            const now = new Date();
+            realtimeClockSpan.textContent = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+        }
+        function startClock() {
+            updateClock();
+            if (clockInterval) clearInterval(clockInterval);
+            clockInterval = setInterval(updateClock, 1000);
+        }
+
+        // 页面切换
+        function switchPage(pageId) {
+            if (pageId === 'timer') {
+                timerPage.classList.remove('hidden-page');
+                historyPage.classList.add('hidden-page');
+            } else {
+                timerPage.classList.add('hidden-page');
+                historyPage.classList.remove('hidden-page');
+                renderHistoryTable();
+            }
+            tabBtns.forEach(btn => {
+                if (btn.dataset.page === pageId) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+        }
+
+        // 初始化
+        function init() {
+            loadHistoryFromLocal();
+            startClock();
+            updateDisplay();
+            refreshMainButton();
+            renderCurrentSessionLaps();
+
+            mainControlBtn.addEventListener('click', onMainControl);
+            lapBtn.addEventListener('click', onLap);
+            resetBtn.addEventListener('click', onReset);
+            clearLapsBtn.addEventListener('click', clearCurrentLapsOnly);
+            if (selectAllBtn) selectAllBtn.addEventListener('click', selectAllRows);
+            if (deselectAllBtn) deselectAllBtn.addEventListener('click', deselectAllRows);
+            if (deleteSelectedBtn) deleteSelectedBtn.addEventListener('click', deleteSelectedRows);
+            if (headerCheckbox) headerCheckbox.addEventListener('change', onHeaderCheckboxChange);
+
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => switchPage(btn.dataset.page));
+            });
+            switchPage('timer');
+        }
+
+        window.addEventListener('beforeunload', () => {
+            if (timerInterval) clearInterval(timerInterval);
+            if (clockInterval) clearInterval(clockInterval);
+        });
+
+        init();
+    })();
+</script>
+</body>
+</html>
